@@ -22,6 +22,9 @@ dist/
 .vscode/
 .idea/
 
+# Claude Code `remember` plugin per-project memory logs
+.remember/
+
 # OS
 .DS_Store
 Thumbs.db
