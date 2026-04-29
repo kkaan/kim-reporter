@@ -22,37 +22,65 @@ free-text physicist-notes section.
 ### 1. Python environment
 
 ```powershell
+# Create an isolated Python environment so dependencies don't clash with
+# other projects on your machine.
 python -m venv .venv
+
+# Activate the environment (required each time you open a new terminal).
 .venv\Scripts\Activate.ps1
+
+# Install the kim_app package in editable mode, plus dev tools
+# (pytest, pyinstaller). Editable mode means Python picks up code changes
+# immediately without a reinstall step.
 pip install -e ".[dev]"
 ```
 
 ### 2. Frontend dependencies and dev server
 
 ```powershell
+# Switch into the React app directory.
 cd web
+
+# Download all JavaScript dependencies declared in package.json into node_modules/.
+# Only needed once (or after package.json changes).
 npm install
-npm run dev   # Vite dev server with HMR on http://localhost:5173
+
+# Start the Vite development server. Serves the React app at
+# http://localhost:5173 with hot-module replacement (HMR) — edits to .tsx
+# files appear in the browser without a full page reload.
+npm run dev
 ```
 
 ### 3. Backend (in a second terminal)
 
 ```powershell
+# Tell the Python app to load the frontend from the Vite dev server instead
+# of the bundled web_dist/ folder. Without this, the app serves the last
+# production build (or fails if web_dist/ doesn't exist yet).
 $env:KIM_REPORTER_DEV_FRONTEND = "http://localhost:5173"
+
+# Start the FastAPI/uvicorn server and open the pywebview desktop window.
+# The window points at http://localhost:5173, so frontend edits hot-reload
+# without restarting Python.
 python -m kim_app
 ```
-
-This launches uvicorn + a pywebview window pointing at the Vite dev server so
-frontend changes hot-reload without restarting the Python process.
 
 ## Production build
 
 ```powershell
-# 1. Build the React bundle
+# Step 1 — compile the React app into static HTML/JS/CSS.
+# Vite bundles everything and writes the output to kim_app/web_dist/ so
+# PyInstaller can include it in the exe.
 cd web
-npm run build        # outputs to ../kim_app/web_dist/
+npm run build
 
-# 2. Package as a single .exe
+# Step 2 — package everything into a single Windows executable.
+# PyInstaller reads KIM-QA-Reporter.spec, which tells it to bundle:
+#   - the kim_app Python package
+#   - the web_dist/ static assets
+#   - matplotlib font data
+#   - all transitive dependencies (uvicorn, FastAPI, ReportLab, pandas, …)
+# The --onefile mode compresses everything into dist/KIM-QA-Reporter.exe.
 cd ..
 pyinstaller KIM-QA-Reporter.spec
 # Output: dist/KIM-QA-Reporter.exe
