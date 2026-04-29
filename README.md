@@ -35,7 +35,20 @@ python -m venv .venv
 pip install -e ".[dev]"
 ```
 
-### 2. Frontend dependencies and dev server
+### 2. Backend
+
+```powershell
+# Tell the Python app to load the frontend from the Vite dev server instead
+# of the bundled web_dist/ folder. Without this, the app serves the last
+# production build (or fails if web_dist/ doesn't exist yet).
+$env:KIM_REPORTER_DEV_FRONTEND = "http://localhost:5173"
+
+# Start the FastAPI/uvicorn server and open the pywebview desktop window.
+# The backend listens on http://127.0.0.1:8765 by default.
+python -m kim_app
+```
+
+### 3. Frontend dev server (in a second terminal)
 
 ```powershell
 # Switch into the React app directory.
@@ -48,22 +61,14 @@ npm install
 # Start the Vite development server. Serves the React app at
 # http://localhost:5173 with hot-module replacement (HMR) — edits to .tsx
 # files appear in the browser without a full page reload.
+# Vite proxies /api/* to the Python backend at http://127.0.0.1:8765,
+# so opening http://localhost:5173 in a browser also works.
 npm run dev
 ```
 
-### 3. Backend (in a second terminal)
-
-```powershell
-# Tell the Python app to load the frontend from the Vite dev server instead
-# of the bundled web_dist/ folder. Without this, the app serves the last
-# production build (or fails if web_dist/ doesn't exist yet).
-$env:KIM_REPORTER_DEV_FRONTEND = "http://localhost:5173"
-
-# Start the FastAPI/uvicorn server and open the pywebview desktop window.
-# The window points at http://localhost:5173, so frontend edits hot-reload
-# without restarting Python.
-python -m kim_app
-```
+The pywebview window opened by `python -m kim_app` points at the Vite dev
+server, so frontend edits hot-reload without restarting Python. You can also
+open `http://localhost:5173` in a regular browser for DevTools access.
 
 ## Production build
 
