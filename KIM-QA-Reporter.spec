@@ -24,7 +24,6 @@ block_cipher = None
 
 ROOT = Path(SPECPATH).resolve()
 WEB_DIST = ROOT / "kim_app" / "web_dist"
-PYTHON_APP = ROOT.parent / "python_app"
 
 # matplotlib needs its data dir bundled or font lookups fail at runtime.
 mpl_data = matplotlib.get_data_path()
@@ -32,9 +31,6 @@ mpl_data = matplotlib.get_data_path()
 datas = [
     (str(WEB_DIST), "kim_app/web_dist"),
     (mpl_data, "matplotlib/mpl-data"),
-    # Include kim_analysis_logic.py as a data file alongside the package so
-    # routes.py's sys.path.insert finds it inside the frozen bundle.
-    (str(PYTHON_APP / "kim_analysis_logic.py"), "python_app"),
 ]
 
 # reportlab ships its own data dir (fonts) that PyInstaller usually finds via
@@ -50,7 +46,7 @@ hidden_imports = (
 
 a = Analysis(
     ["kim_app/__main__.py"],
-    pathex=[str(ROOT), str(PYTHON_APP)],
+    pathex=[str(ROOT)],
     binaries=[],
     datas=datas,
     hiddenimports=hidden_imports,

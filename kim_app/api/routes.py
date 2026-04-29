@@ -15,26 +15,17 @@ from __future__ import annotations
 import datetime as _dt
 import glob
 import os
-import sys
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
-# Make ``python_app`` importable so we can reuse parse_centroid_file. The
-# kim-reporter package lives at <repo>/kim-reporter/; python_app at <repo>/python_app/.
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_PYTHON_APP = _REPO_ROOT / "python_app"
-if str(_PYTHON_APP) not in sys.path:
-    sys.path.insert(0, str(_PYTHON_APP))
-
-from kim_analysis_logic import parse_centroid_file  # noqa: E402
-
-from kim_app.core.loader import (  # noqa: E402
+from kim_app.core.loader import (
     discover_markers,
     expected_centroid_from_seeds,
     file_index,
     load_centroid,
+    parse_centroid_file,
 )
 from kim_app.core.shifts import (  # noqa: E402
     CouchShift,

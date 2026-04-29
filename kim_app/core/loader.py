@@ -82,6 +82,62 @@ class LoadResult:
     """Non-fatal messages surfaced to the UI (sentinel/glitch counts, NaN frames)."""
 
 
+def parse_centroid_file(filepath: str) -> dict:
+    """Parse a PRIME ``Centroid_*.txt`` file and return seed/isocenter data.
+
+    Returns a dict with keys:
+      ``seeds``             — list of [X, Y, Z] cm for each seed found
+      ``isocenter``         — [X, Y, Z] cm
+      ``expected_centroid`` — {'x': LR_mm, 'y': SI_mm, 'z': AP_mm}
+
+    The expected centroid applies the MATLAB Staticloc.m axis swap:
+        x = iso_x   (LR)
+        y = iso_z   (SI)
+        z = −iso_y  (AP)
+
+    Vendored from ``python_app/kim_analysis_logic.parse_centroid_file`` in the
+    parent KIM-QA-Analysis repo so this package is self-contained.
+    """
+    with open(filepath, "r", encoding="utf-8", errors="replace") as fh:
+        content = fh.read()
+
+    seeds: list[list[float]] = []
+    for i in range(1, 10):
+        m = re.search(
+            rf"Seed\s*{i},\s*X=\s*([-\d.]+),\s*Y=\s*([-\d.]+),\s*Z=\s*([-\d.]+)",
+            content,
+        )
+        if m:
+            seeds.append([float(m.group(1)), float(m.group(2)), float(m.group(3))])
+
+    if len(seeds) < 2:
+        raise ValueError(
+            f"Need at least 2 seeds in centroid file, found {len(seeds)}: {filepath}"
+        )
+
+    iso_m = re.search(
+        r"Isocenter\s*\(cm\),\s*X=\s*([-\d.]+),\s*Y=\s*([-\d.]+),\s*Z=\s*([-\d.]+)",
+        content,
+    )
+    if not iso_m:
+        raise ValueError(f"Could not find Isocenter coordinates in {filepath}")
+    isocenter = [float(iso_m.group(1)), float(iso_m.group(2)), float(iso_m.group(3))]
+
+    avg = np.mean(seeds, axis=0)
+    iso_mm = 10.0 * (avg - np.asarray(isocenter))
+    expected_centroid = {
+        "x": float(iso_mm[0]),    # LR
+        "y": float(iso_mm[2]),    # SI
+        "z": float(-iso_mm[1]),   # AP
+    }
+
+    return {
+        "seeds": seeds,
+        "isocenter": isocenter,
+        "expected_centroid": expected_centroid,
+    }
+
+
 def file_index(filepath: str) -> int:
     """Extract the integer N from ``MarkerLocationsGA_CouchShift_N.txt``."""
     match = _FILE_INDEX_RE.search(filepath)
