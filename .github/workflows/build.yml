@@ -44,9 +44,20 @@ jobs:
       - name: Build executable with PyInstaller
         run: pyinstaller KIM-QA-Reporter.spec
 
-      - name: Zip executable
+      - name: Build user guide PDF
         shell: pwsh
-        run: Compress-Archive -Path dist/KIM-QA-Reporter.exe -DestinationPath dist/KIM-QA-Reporter-Windows.zip
+        run: |
+          $version = "${{ github.ref_name }}"
+          if (-not $version) { $version = "dev" }
+          python scripts/build_docs_pdf.py --version $version
+
+      - name: Assemble release folder and zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item dist/KIM-QA-Reporter.exe release/
+          Copy-Item docs/user-guide.pdf release/
+          Compress-Archive -Path release/* -DestinationPath dist/KIM-QA-Reporter-Windows.zip
 
       # On tag push: create a GitHub Release and attach the zip.
       # On workflow_dispatch: upload as a workflow artifact for dev testing.
