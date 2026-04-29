@@ -9,107 +9,133 @@ per-fraction trajectory logs (`MarkerLocationsGA_CouchShift_*.txt`) and
 exports an A4 PDF with the trajectory plots, intervention summary table, and a
 free-text physicist-notes section.
 
-## Architecture
+## Requirements
 
-- **Backend** (`kim_app/`): Python + FastAPI. Reuses parsers from
-  `python_app/kim_analysis_logic.py` and the abstract-figures helpers, with a
-  new dynamic-marker loader (`kim_app.core.loader`) that handles 1–N markers and
-  per-marker deselection.
-- **Frontend** (`web/`): React 18 + TypeScript + Vite + Tailwind +
-  react-plotly.js. Built once with Vite into `kim_app/web_dist/` and shipped as
-  static assets.
-- **Shell**: pywebview (Edge WebView2 on Windows) hosts the React app pointing
-  at the in-process FastAPI server.
-- **PDF**: ReportLab with matplotlib-rendered figures embedded as PNGs.
-- **Packaging**: PyInstaller `--onefile` produces `KIM-QA-Reporter.exe`.
+- **Python 3.11+**
+- **Node.js 18+** (only needed to build the frontend; not required at runtime)
+- **Edge WebView2 runtime** — pre-installed on Windows 10 21H2+ and Windows 11.
+  If missing on older Windows 10, download the Evergreen installer from
+  [Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
 
-## Development
+## Quick start (development)
 
-### One-time setup
+### 1. Python environment
 
 ```powershell
-# From repo root
-cd kim-reporter
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-cd web
-npm install
 ```
 
-> **Windows note**: npm 10.x has a [known bug](https://github.com/npm/cli/issues/4828)
-> where it skips Rollup's platform-specific native binary on Windows. If
-> `npm run build` fails with `Cannot find module @rollup/rollup-win32-x64-msvc`,
-> run:
->
-> ```powershell
-> npm install --no-save @rollup/rollup-win32-x64-msvc
-> ```
+### 2. Frontend dependencies and dev server
 
-### Run in development
-
-In one terminal:
 ```powershell
-cd kim-reporter\web
+cd web
+npm install
 npm run dev   # Vite dev server with HMR on http://localhost:5173
 ```
 
-In another terminal:
+### 3. Backend (in a second terminal)
+
 ```powershell
-cd kim-reporter
 $env:KIM_REPORTER_DEV_FRONTEND = "http://localhost:5173"
 python -m kim_app
 ```
 
-This launches uvicorn + pywebview pointing at the Vite dev server so frontend
-edits hot-reload.
+This launches uvicorn + a pywebview window pointing at the Vite dev server so
+frontend changes hot-reload without restarting the Python process.
 
-### Production build
+## Production build
 
 ```powershell
-cd kim-reporter\web
-npm run build      # outputs to kim_app/web_dist/
+# 1. Build the React bundle
+cd web
+npm run build        # outputs to ../kim_app/web_dist/
 
+# 2. Package as a single .exe
 cd ..
 pyinstaller KIM-QA-Reporter.spec
 # Output: dist/KIM-QA-Reporter.exe
 ```
 
-## Sample data
+The resulting exe is self-contained: it embeds the FastAPI server, the
+compiled React frontend, matplotlib, and ReportLab. Edge WebView2 must be
+present on the target machine (it is not bundled).
 
-The repo ships a sample patient at
-`Sample Patient Trajectory Logs/PAT01/` (PAT01 is a 2-marker case where one
-implanted seed was removed from tracking). The reporter auto-detects the
-centroid file at the parent directory.
-
-## Project layout
+## Architecture
 
 ```
 kim-reporter/
 ├── pyproject.toml
-├── KIM-QA-Reporter.spec
+├── KIM-QA-Reporter.spec        # PyInstaller single-file build
 ├── kim_app/
 │   ├── __main__.py             # entrypoint: uvicorn thread + pywebview window
 │   ├── server.py               # FastAPI app factory
 │   ├── core/
-│   │   ├── loader.py           # dynamic-marker centroid loader
+│   │   ├── loader.py           # centroid file parser + dynamic-marker loader
 │   │   ├── shifts.py           # couchShifts.txt parsing
-│   │   ├── window.py           # gap compression
+│   │   ├── window.py           # beam-off gap compression
 │   │   └── overlay.py          # no-correction counterfactual
 │   ├── api/
-│   │   ├── schema.py           # pydantic models
-│   │   └── routes.py           # /api/scan /api/fraction /api/render-pdf
+│   │   ├── schema.py           # Pydantic request/response models
+│   │   └── routes.py           # /api/scan  /api/fraction  /api/render-pdf
 │   ├── pdf/
-│   │   └── report.py           # ReportLab clinical template
+│   │   └── report.py           # ReportLab A4 clinical template
 │   └── web_dist/               # populated by `npm run build` (git-ignored)
 └── web/
     ├── package.json
     ├── vite.config.ts
     ├── tailwind.config.ts
-    └── src/                    # React app
+    └── src/                    # React 18 + TypeScript + Plotly frontend
 ```
 
-## See also
+### Backend (`kim_app/`)
 
-- `abstract-figures/` — batch publication-figure pipeline (untouched).
-- `python_app/` — original CustomTkinter analysis GUI (untouched).
+Python + FastAPI. All parsing logic is self-contained:
+
+- `kim_app.core.loader` — parses `Centroid_*.txt` files (seeds + isocenter),
+  dynamically detects 1–N implanted markers per fraction, applies the
+  sentinel/glitch filters from the PRIME trajectory-log pipeline, and computes
+  the centroid deviation timeseries.
+- `kim_app.core.shifts` — reads `couchShifts.txt`, handles the FX01
+  merged-session anomaly (stale leading rows), converts VRT/LNG/LAT → AP/SI/LR.
+- `kim_app.core.window` — compresses beam-off pauses on the display time axis.
+- `kim_app.core.overlay` — computes the no-correction counterfactual overlay.
+
+### Frontend (`web/`)
+
+React 18 + TypeScript + Vite + Tailwind CSS + react-plotly.js. Built once with
+Vite into `kim_app/web_dist/` and shipped as static assets inside the exe.
+
+### Shell
+
+pywebview (Edge WebView2 on Windows) hosts the React app pointing at the
+in-process FastAPI/uvicorn server.
+
+### PDF
+
+ReportLab with matplotlib-rendered figures embedded as PNGs. Produces an A4
+portrait report with deviation plots per axis, an intervention summary table,
+and a free-text physicist-notes section.
+
+## Input data layout
+
+The app expects a patient directory in this shape:
+
+```
+<patient_dir>/
+├── Centroid_<PatientID>_BeamID_*.txt   # seed/isocenter file (can be in parent dir)
+├── FX01/
+│   └── Trajectory Logs/
+│       ├── MarkerLocationsGA_CouchShift_0.txt
+│       ├── MarkerLocationsGA_CouchShift_1.txt
+│       └── couchShifts.txt
+├── FX02/
+│   └── Trajectory Logs/
+│       └── ...
+└── ...
+```
+
+The centroid file is searched first inside `<patient_dir>`, then in its parent,
+so both flat layouts (centroid alongside fraction folders) and nested layouts
+(centroid one level up) are handled automatically.
