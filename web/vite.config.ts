@@ -29,6 +29,9 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "../kim_app/web_dist"),
     emptyOutDir: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 1500,
+    // Plotly.js-dist-min is ~4.9 MB minified. For a desktop app served from
+    // localhost this is not a problem — the bundle loads from disk, not a
+    // real network connection. Raise the limit to suppress the noisy warning.
+    chunkSizeWarningLimit: 5500,
   },
 });
