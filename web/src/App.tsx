@@ -1,4 +1,4 @@
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { DeviationPlot } from "./components/DeviationPlot";
 import { FractionTabs } from "./components/FractionTabs";
 import { InterventionTable } from "./components/InterventionTable";
@@ -23,9 +23,11 @@ export default function App() {
       {/* ---- Top bar ------------------------------------------------ */}
       <header className="flex items-center justify-between border-b border-kim-edge bg-kim-panel px-5 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-kim-accent" />
+          <span className="flex h-6 w-6 items-center justify-center rounded bg-kim-accent text-[11px] font-bold leading-none text-kim-bg">
+            KR
+          </span>
           <h1 className="text-lg font-semibold tracking-tight">
-            KIM-QA Reporter
+            KIM Patient Trajectory Reporter
           </h1>
           <span className="ml-2 rounded-full border border-kim-edge px-2 py-0.5 text-[10px] uppercase tracking-wider text-kim-muted">
             v0.1
