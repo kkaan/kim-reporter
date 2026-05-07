@@ -30,7 +30,7 @@ export default function App() {
             KIM Patient Trajectory Reporter
           </h1>
           <span className="ml-2 rounded-full border border-kim-edge px-2 py-0.5 text-[10px] uppercase tracking-wider text-kim-muted">
-            v0.1
+            v1.1.2
           </span>
         </div>
         {scan && (

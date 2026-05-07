@@ -1,6 +1,6 @@
 [project]
 name = "kim-qa-reporter"
-version = "0.1.0"
+version = "1.1.2"
 description = "Desktop reporter for KIM-guided couch corrections — generates clinical PDF reports from PRIME trajectory logs"
 requires-python = ">=3.11"
 authors = [{ name = "Kankean Kandasamy" }]
