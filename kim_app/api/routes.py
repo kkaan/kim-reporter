@@ -178,9 +178,13 @@ def _load_fraction_payload(req: FractionRequest) -> FractionResponse:
     """Shared core of /api/fraction. Returns the assembled FractionResponse so
     the PDF route can also use it."""
     pdir = Path(req.patient_dir).expanduser().resolve()
-    traj = pdir / req.fraction_id / "Trajectory Logs"
+    fx_dir = pdir / req.fraction_id
+    traj = fx_dir / "Trajectory Logs"
     if not traj.is_dir():
-        raise HTTPException(404, f"Trajectory Logs folder not found: {traj}")
+        if fx_dir.is_dir() and any(fx_dir.glob("MarkerLocationsGA_CouchShift_*.txt")):
+            traj = fx_dir
+        else:
+            raise HTTPException(404, f"Trajectory Logs folder not found: {traj}")
 
     centroid_path = Path(req.centroid_file).expanduser().resolve()
     if not centroid_path.is_file():
