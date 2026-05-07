@@ -69,7 +69,11 @@ def _find_centroid_file(patient_dir: Path) -> Optional[Path]:
 
 def _list_fractions(patient_dir: Path) -> list[tuple[str, Path]]:
     """Return sorted ``(fraction_id, trajectory_logs_path)`` for every fraction
-    folder under ``patient_dir`` that contains a ``Trajectory Logs`` subdir.
+    folder under ``patient_dir``.
+
+    Accepts two layouts:
+    - ``FX01/Trajectory Logs/`` — standard PRIME layout
+    - ``FX01/`` with trajectory files directly inside — flat layout
     """
     out: list[tuple[str, Path]] = []
     for entry in sorted(patient_dir.iterdir()):
@@ -78,6 +82,10 @@ def _list_fractions(patient_dir: Path) -> list[tuple[str, Path]]:
         traj = entry / "Trajectory Logs"
         if traj.is_dir():
             out.append((entry.name, traj))
+        elif "fx" in entry.name.lower() and any(
+            entry.glob("MarkerLocationsGA_CouchShift_*.txt")
+        ):
+            out.append((entry.name, entry))
     return out
 
 
